@@ -8,6 +8,85 @@ from google.api_core import exceptions
 from dotenv import load_dotenv
 import time
 
+import streamlit as st
+from database import insert_user, validate_user, get_user_by_email
+import hashlib
+
+
+
+def hash_password(password):
+    return hashlib.sha256(password.encode()).hexdigest()
+
+def signup():
+    st.subheader("Sign Up")
+    first = st.text_input("First Name")
+    last = st.text_input("Last Name")
+    phone = st.text_input("Phone Number")
+    email = st.text_input("Email ID")
+    password = st.text_input("Password", type="password")
+
+    if st.button("Create Account"):
+        if first and last and phone and email and password:
+            hashed_pwd = hash_password(password)
+            success = insert_user(first, last, phone, email, hashed_pwd)
+            if success:
+                st.success("Account created successfully.")
+                st.session_state.page = "login"
+            else:
+                st.error("Account creation failed. Email might already be registered.")
+        else:
+            st.warning("Please fill all fields.")
+
+    st.markdown("Already have an account? [Login here](#)")
+    if st.button("Go to Login"):
+        st.session_state.page = "login"
+        st.rerun()
+
+
+def login():
+    st.subheader("Login")
+    email = st.text_input("Email ID")
+    password = st.text_input("Password", type="password")
+
+    if st.button("Login"):
+        hashed_pwd = hash_password(password)
+        if validate_user(email, hashed_pwd):
+            st.success("Login successful!")
+            st.session_state.logged_in = True
+            st.session_state.user_email = email
+
+            # Fetch user details for profile icon
+            user_record = get_user_by_email(email)
+            if user_record:
+                st.session_state.user = {
+                    "first_name": user_record[0],
+                    "last_name": user_record[1],
+                    "phone": user_record[2],
+                    "email": user_record[3]
+                }
+
+            st.session_state.page = "main"
+            st.rerun()  # <-- Important to refresh page view
+        else:
+            st.error("Invalid credentials.")
+
+    st.markdown("Don't have an account? [Sign up here](#)")
+    if st.button("Go to Signup"):
+        st.session_state.page = "signup"
+        st.rerun()
+
+
+def logout():
+    for key in ["logged_in", "user_email", "user", "page"]:
+        if key in st.session_state:
+            del st.session_state[key]
+    st.success("Logged out successfully.")
+    st.session_state.page = "login"
+    st.experimental_rerun()
+
+
+
+
 load_dotenv()
 
 # Configure the Gemini AI model
@@ -84,7 +163,17 @@ def back_button_to_url(url):
         )
 def main():
     back_button_to_url("http://localhost:5173/")
-    st.title("MediMate-AI-driven Medical Report Analyzer")
+
+    if "user" in st.session_state:
+        with st.sidebar.expander("👤 My Profile", expanded=False):
+            st.markdown(f"**Name:** {st.session_state.user['first_name']} {st.session_state.user['last_name']}")
+            st.markdown(f"**Email:** {st.session_state.user['email']}")
+            st.markdown(f"**Phone:** {st.session_state.user['phone']}")
+            if st.button("Logout"):
+                logout()
+
+
+    st.title("SmartScan Reports: Simple Medical Report Analyzer")
     st.write("Upload a medical report (image or PDF) for analysis")
 
     file_type = st.radio("Select file type:", ("Image", "PDF"))
@@ -128,4 +217,15 @@ def main():
                     os.unlink(tmp_file_path)
 
 if __name__ == "__main__":
-    main()
+    if "page" not in st.session_state:
+        st.session_state.page = "login"
+
+    if st.session_state.page == "signup":
+        signup()
+    elif st.session_state.page == "login":
+        login()
+    elif st.session_state.page == "main" and st.session_state.get("logged_in", False):
+        main()
+    else:
+        st.warning("You're not logged in. Redirecting to login page...")
+        st.session_state.page = "login"
