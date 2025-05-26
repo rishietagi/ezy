@@ -9,14 +9,20 @@ def get_connection():
     )
 
 def insert_user(first_name, last_name, phone, email, password):
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute(
-        "INSERT INTO users (first_name, last_name, phone, email, password) VALUES (%s, %s, %s, %s, %s)",
-        (first_name, last_name, phone, email, password)
-    )
-    conn.commit()
-    conn.close()
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            "INSERT INTO users (first_name, last_name, phone, email, password) VALUES (%s, %s, %s, %s, %s)",
+            (first_name, last_name, phone, email, password)
+        )
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        print(f"[DB ERROR] Insert failed: {e}")
+        return False
+
 
 def validate_user(email, password):
     conn = get_connection()
