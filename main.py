@@ -8,14 +8,64 @@ from google.api_core import exceptions
 from dotenv import load_dotenv
 import time
 
-import streamlit as st
 from database import insert_user, validate_user, get_user_by_email
 import hashlib
 
 
+# ---------- CSS Styling ----------
+st.markdown("""
+    <style>
+        /* Global font and background */
+        body, .stApp {
+            background-color: #0f172a;
+            color: #e2e8f0;
+            font-family: 'Segoe UI', sans-serif;
+        }
+        /* Title */
+        .main-title {
+            font-size: 2.8em;
+            font-weight: 700;
+            color: #f8fafc;
+            margin-bottom: 10px;
+        }
+        /* Subtitle */
+        .subtext {
+            font-size: 1.1em;
+            color: #cbd5e1;
+            margin-bottom: 30px;
+        }
+        /* Upload Section */
+        .upload-box {
+            background-color: #1e293b;
+            padding: 25px;
+            border-radius: 10px;
+        }
+        /* Buttons */
+        .stButton>button {
+            background-color: #2563eb;
+            color: white;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+        /* Radio buttons */
+        .stRadio > label {
+            font-weight: bold;
+            color: #f1f5f9;
+        }
+        /* Sidebar profile */
+        .sidebar-title {
+            font-weight: 700;
+            font-size: 1.2em;
+            color: #f1f5f9;
+        }
+    </style>
+""", unsafe_allow_html=True)
 
+
+# ---------- Authentication Helpers ----------
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
+
 
 def signup():
     st.subheader("Sign Up")
@@ -44,6 +94,14 @@ def signup():
 
 
 def login():
+    st.markdown("""
+    <style>
+        #MainMenu {visibility: hidden;}
+        footer {visibility: hidden;}
+        header {visibility: hidden;}
+        .st-emotion-cache-1avcm0n {padding: 0;}  /* Removes unnecessary top padding */
+    </style>
+""", unsafe_allow_html=True)
     st.subheader("Login")
     email = st.text_input("Email ID")
     password = st.text_input("Password", type="password")
@@ -55,7 +113,6 @@ def login():
             st.session_state.logged_in = True
             st.session_state.user_email = email
 
-            # Fetch user details for profile icon
             user_record = get_user_by_email(email)
             if user_record:
                 st.session_state.user = {
@@ -66,7 +123,7 @@ def login():
                 }
 
             st.session_state.page = "main"
-            st.rerun()  # <-- Important to refresh page view
+            st.rerun()
         else:
             st.error("Invalid credentials.")
 
@@ -85,11 +142,8 @@ def logout():
     st.experimental_rerun()
 
 
-
-
+# ---------- Gemini Setup ----------
 load_dotenv()
-
-# Configure the Gemini AI model
 api_key = os.getenv("GEMINI_API_KEY")
 if not api_key:
     st.error("Gemini API key not found. Please set the GEMINI_API_KEY environment variable.")
@@ -99,7 +153,8 @@ genai.configure(api_key=api_key)
 model = genai.GenerativeModel('gemini-1.5-flash')
 
 MAX_RETRIES = 3
-RETRY_DELAY = 2  # seconds
+RETRY_DELAY = 2
+
 
 def analyze_medical_report(content, content_type):
     prompt = "Analyze this medical report concisely. Provide key findings, diagnoses, and recommendations:"
@@ -108,10 +163,8 @@ def analyze_medical_report(content, content_type):
         try:
             if content_type == "image":
                 response = model.generate_content([prompt, content])
-            else:  # text
-                # Gemini 1.5 Flash can handle larger inputs, so we'll send the full text
+            else:
                 response = model.generate_content(f"{prompt}\n\n{content}")
-            
             return response.text
         except exceptions.GoogleAPIError as e:
             if attempt < MAX_RETRIES - 1:
@@ -121,20 +174,22 @@ def analyze_medical_report(content, content_type):
                 st.error(f"Failed to analyze the report after {MAX_RETRIES} attempts. Error: {str(e)}")
                 return fallback_analysis(content, content_type)
 
+
 def fallback_analysis(content, content_type):
     st.warning("Using fallback analysis method due to API issues.")
     if content_type == "image":
         return "Unable to analyze the image due to API issues. Please try again later or consult a medical professional for accurate interpretation."
-    else:  # text
+    else:
         word_count = len(content.split())
         return f"""
         Fallback Analysis:
         1. Document Type: Text-based medical report
         2. Word Count: Approximately {word_count} words
         3. Content: The document appears to contain medical information, but detailed analysis is unavailable due to technical issues.
-        4. Recommendation: Please review the document manually or consult with a healthcare professional for accurate interpretation.
-        5. Note: This is a simplified analysis due to temporary unavailability of the AI service. For a comprehensive analysis, please try again later.
+        4. Recommendation: Please review the document manually or consult with a healthcare professional.
+        5. Note: This is a simplified fallback response.
         """
+
 
 def extract_text_from_pdf(pdf_file):
     pdf_reader = PyPDF2.PdfReader(pdf_file)
@@ -142,14 +197,16 @@ def extract_text_from_pdf(pdf_file):
     for page in pdf_reader.pages:
         text += page.extract_text()
     return text
+
+
 def back_button_to_url(url):
-    col1, col2 = st.columns([1, 9])  # Creates a narrow left column
+    col1, col2 = st.columns([1, 9])
     with col1:
         st.markdown(
             f"""
             <a href="{url}" target="_self" style="text-decoration: none;">
                 <button style="
-                    background-color: #3498db;
+                    background-color: #2563eb;
                     color: white;
                     border: none;
                     border-radius: 5px;
@@ -161,60 +218,187 @@ def back_button_to_url(url):
             """,
             unsafe_allow_html=True,
         )
+
+
+# ---------- Main App ----------
 def main():
+    
     back_button_to_url("http://localhost:5173/")
 
+
+    hide_streamlit_style = """
+        <style>
+        /* Hide Streamlit header, footer, and hamburger menu */
+        #MainMenu {visibility: hidden;}
+        footer {visibility: hidden;}
+        header {visibility: hidden;}
+        </style>
+    """
+    st.markdown(hide_streamlit_style, unsafe_allow_html=True)
+
+
     if "user" in st.session_state:
-        with st.sidebar.expander("👤 My Profile", expanded=False):
-            st.markdown(f"**Name:** {st.session_state.user['first_name']} {st.session_state.user['last_name']}")
-            st.markdown(f"**Email:** {st.session_state.user['email']}")
-            st.markdown(f"**Phone:** {st.session_state.user['phone']}")
-            if st.button("Logout"):
-                logout()
+        profile_info = f"""
+        <div class="profile-container">
+            <div class="profile-icon">👤</div>
+            <div class="profile-details">
+                <strong>{st.session_state.user['first_name']} {st.session_state.user['last_name']}</strong><br>
+                {st.session_state.user['email']}<br>
+                {st.session_state.user['phone']}<br>
+                <form action="" method="post">
+                    <input type="submit" value="Logout" class="logout-btn" onclick="window.location.reload();">
+                </form>
+            </div>
+        </div>
+
+        <style>
+            .profile-container {{
+                position: fixed;
+                top: 20px;
+                left: 20px;  /* changed from right to left */
+                z-index: 9999;
+                font-family: Arial, sans-serif;
+            }}
+            .profile-icon {{
+                font-size: 30px;
+                cursor: pointer;
+                background-color: #3498db;
+                color: white;
+                border-radius: 50%;
+                width: 45px;
+                height: 45px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-shadow: 0px 4px 10px rgba(0,0,0,0.2);
+            }}
+            .profile-details {{
+                display: none;
+                position: absolute;
+                top: 50px;
+                left: 0;  /* align details under icon */
+                background-color: blue;
+                border: 1px solid #ddd;
+                padding: 10px;
+                border-radius: 10px;
+                box-shadow: 0px 4px 12px rgba(0,0,0,0.2);
+                width: 220px;
+                transition: all 0.3s ease;
+            }}
+            .profile-container:hover .profile-details {{
+                display: block;
+            }}
+            .logout-btn {{
+                background-color: #e74c3c;
+                color: white;
+                border: none;
+                padding: 5px 10px;
+                margin-top: 8px;
+                border-radius: 5px;
+                cursor: pointer;
+            }}
+        </style>
+        """
+        st.markdown(profile_info, unsafe_allow_html=True)
+
+    st.markdown("""
+        <style>
+        .main {
+            background-color: #0F172A;
+            color: white;
+        }
+        .title-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 20px;
+            margin-bottom: 30px;
+        }
+        .title-text {
+            font-size: 3.5rem;
+            font-weight: 800;
+            text-align: center;
+            line-height: 1.2;
+        }
+        .subtitle-text {
+            font-size: 1.5rem;
+            font-weight: 300;
+            text-align: center;
+            margin-top: -15px;
+        }
 
 
-    st.title("SmartScan Reports: Simple Medical Report Analyzer")
-    st.write("Upload a medical report (image or PDF) for analysis")
+        .back-button {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 2rem;
+        }
+        </style>
+    """, unsafe_allow_html=True)
 
-    file_type = st.radio("Select file type:", ("Image", "PDF"))
+    st.markdown("""
+    <div class="top-bar">
+        <img src="https://img.icons8.com/ios-filled/50/ffffff/user.png" class="profile-pic">
+    </div>
+    """, unsafe_allow_html=True)
 
-    if file_type == "Image":
-        uploaded_file = st.file_uploader("Choose a medical report image", type=["jpg", "jpeg", "png"])
-        if uploaded_file is not None:
-            with tempfile.NamedTemporaryFile(delete=False, suffix='.png') as tmp_file:
-                tmp_file.write(uploaded_file.getvalue())
-                tmp_file_path = tmp_file.name
+    st.markdown("""
+    <div class="title-container">
+        <div class="title-text">SmartScan Reports</div>
+        <div class="subtitle-text">Simple medical report analyzer</div>
+    </div>
+    """, unsafe_allow_html=True)
 
-            image = Image.open(tmp_file_path)
-            st.image(image, caption="Uploaded Medical Report", use_column_width=True)
 
-            if st.button("Analyze Image Report"):
-                with st.spinner("Analyzing the medical report image..."):
-                    analysis = analyze_medical_report(image, "image")
-                    st.subheader("Analysis Results:")
-                    st.write(analysis)
 
-            os.unlink(tmp_file_path)
 
-    else:  # PDF
-        uploaded_file = st.file_uploader("Choose a medical report PDF", type=["pdf"])
-        if uploaded_file is not None:
-            st.write("PDF uploaded successfully")
+    st.write("#### Upload a medical report (image or PDF) for analysis")
 
-            if st.button("Analyze PDF Report"):
-                with st.spinner("Analyzing the medical report PDF..."):
-                    with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp_file:
-                        tmp_file.write(uploaded_file.getvalue())
-                        tmp_file_path = tmp_file.name
+    with st.container():
+        st.markdown('<div class="upload-box">', unsafe_allow_html=True)
 
-                    with open(tmp_file_path, 'rb') as pdf_file:
-                        pdf_text = extract_text_from_pdf(pdf_file)
+        file_type = st.radio("Select file type:", ("Image", "PDF"))
 
-                    analysis = analyze_medical_report(pdf_text, "text")
-                    st.subheader("Analysis Results:")
-                    st.write(analysis)
+        if file_type == "Image":
+            uploaded_file = st.file_uploader("Choose a medical report image", type=["jpg", "jpeg", "png"])
+            if uploaded_file is not None:
+                with tempfile.NamedTemporaryFile(delete=False, suffix='.png') as tmp_file:
+                    tmp_file.write(uploaded_file.getvalue())
+                    tmp_file_path = tmp_file.name
 
-                    os.unlink(tmp_file_path)
+                image = Image.open(tmp_file_path)
+                st.image(image, caption="Uploaded Medical Report", use_column_width=True)
+
+                if st.button("Analyze Image Report"):
+                    with st.spinner("Analyzing the medical report image..."):
+                        analysis = analyze_medical_report(image, "image")
+                        st.subheader("Analysis Results:")
+                        st.write(analysis)
+
+                os.unlink(tmp_file_path)
+
+        else:  # PDF
+            uploaded_file = st.file_uploader("Choose a medical report PDF", type=["pdf"])
+            if uploaded_file is not None:
+                st.write("PDF uploaded successfully")
+
+                if st.button("Analyze PDF Report"):
+                    with st.spinner("Analyzing the medical report PDF..."):
+                        with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp_file:
+                            tmp_file.write(uploaded_file.getvalue())
+                            tmp_file_path = tmp_file.name
+
+                        with open(tmp_file_path, 'rb') as pdf_file:
+                            pdf_text = extract_text_from_pdf(pdf_file)
+
+                        analysis = analyze_medical_report(pdf_text, "text")
+                        st.subheader("Analysis Results:")
+                        st.write(analysis)
+
+                        os.unlink(tmp_file_path)
+
+        st.markdown('</div>', unsafe_allow_html=True)
+
 
 if __name__ == "__main__":
     if "page" not in st.session_state:
