@@ -199,31 +199,31 @@ def extract_text_from_pdf(pdf_file):
     return text
 
 
-def back_button_to_url(url):
-    col1, col2 = st.columns([1, 9])
-    with col1:
-        st.markdown(
-            f"""
-            <a href="{url}" target="_self" style="text-decoration: none;">
-                <button style="
-                    background-color: #2563eb;
-                    color: white;
-                    border: none;
-                    border-radius: 5px;
-                    font-size: 16px;
-                    padding: 8px 16px;
-                    cursor: pointer;
-                ">⬅️ Back</button>
-            </a>
-            """,
-            unsafe_allow_html=True,
-        )
+# def back_button_to_url(url):
+#     col1, col2 = st.columns([1, 9])
+#     with col1:
+#         st.markdown(
+#             f"""
+#             <a href="{url}" target="_self" style="text-decoration: none;">
+#                 <button style="
+#                     background-color: #2563eb;
+#                     color: white;
+#                     border: none;
+#                     border-radius: 5px;
+#                     font-size: 16px;
+#                     padding: 8px 16px;
+#                     cursor: pointer;
+#                 ">⬅️ Back</button>
+#             </a>
+#             """,
+#             unsafe_allow_html=True,
+#         )
 
 
 # ---------- Main App ----------
 def main():
     
-    back_button_to_url("http://localhost:5173/")
+    # back_button_to_url("http://localhost:5173/")
 
 
     hide_streamlit_style = """
@@ -302,60 +302,108 @@ def main():
         st.markdown(profile_info, unsafe_allow_html=True)
 
     st.markdown("""
-        <style>
-        .main {
-            background-color: #0F172A;
-            color: white;
-        }
-        .title-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            margin-top: 20px;
-            margin-bottom: 30px;
-        }
-        .title-text {
-            font-size: 3.5rem;
-            font-weight: 800;
-            text-align: center;
-            line-height: 1.2;
-        }
-        .subtitle-text {
-            font-size: 1.5rem;
-            font-weight: 300;
-            text-align: center;
-            margin-top: -15px;
-        }
+    <style>
+    body {
+        background-color: #0F172A;
+        color: white;
+    }
 
+    .title-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin-top: -140px;
+        margin-bottom: 50px;
+    }
 
-        .back-button {
-            display: flex;
-            justify-content: center;
-            margin-bottom: 2rem;
-        }
-        </style>
+    .title-text {
+        font-size:  3rem;
+        font-weight: bold;
+        color: #ffffff;
+    }
+
+    .subtitle-text {
+        font-size: 1.4rem;
+        font-weight: 300;
+        color: #cbd5e1;
+    }
+
+    .stRadio > div {
+        display: flex;
+        justify-content: center;
+        padding-top: 10px;
+    }
+
+    .upload-box {
+        background-color: #1e293b;
+        padding: 30px;
+        border-radius: 16px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        max-width: 600px;
+        margin: 0 auto;
+    }
+
+    .upload-box .stFileUploader, .upload-box .stButton {
+        margin-top: 20px;
+        text-align: center;
+    }
+
+    .stFileUploader > div {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .stButton button {
+        background-color: #3b82f6;
+        color: white;
+        padding: 0.6rem 1.2rem;
+        border-radius: 10px;
+        font-weight: 500;
+        border: none;
+        margin-top: 10px;
+        transition: background-color 0.3s ease;
+    }
+
+    .stButton button:hover {
+        background-color: #2563eb;
+    }
+
+    .stFileUploader label {
+        color: #ffffff;
+        font-weight: 500;
+    }
+
+    .stRadio label {
+        color: #ffffff;
+        font-weight: 500;
+    }
+
+    .stMarkdown h4 {
+        text-align: center;
+        margin-top: 40px;
+        margin-bottom: 10px;
+        font-weight: 600;
+    }
+
+    /* Optional: Improve spinner visibility */
+    .stSpinner {
+        color: white;
+    }
+    </style>
     """, unsafe_allow_html=True)
-
-    st.markdown("""
-    <div class="top-bar">
-        <img src="https://img.icons8.com/ios-filled/50/ffffff/user.png" class="profile-pic">
-    </div>
-    """, unsafe_allow_html=True)
-
+    
     st.markdown("""
     <div class="title-container">
         <div class="title-text">SmartScan Reports</div>
-        <div class="subtitle-text">Simple medical report analyzer</div>
+        <div class="subtitle-text">AI driven Medical Report Analyzer</div>
     </div>
     """, unsafe_allow_html=True)
-
-
-
 
     st.write("#### Upload a medical report (image or PDF) for analysis")
 
     with st.container():
-        st.markdown('<div class="upload-box">', unsafe_allow_html=True)
+        # st.markdown('<div class="upload-box">', unsafe_allow_html=True)
 
         file_type = st.radio("Select file type:", ("Image", "PDF"))
 
