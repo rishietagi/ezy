@@ -7,8 +7,8 @@ import os
 from google.api_core import exceptions
 from dotenv import load_dotenv
 import time
-
-from database import insert_user, validate_user, get_user_by_email
+from datetime import datetime
+from database import insert_user, validate_user, get_user_by_email, log_login_time, get_login_history 
 import hashlib
 
 
@@ -73,12 +73,14 @@ def signup():
     last = st.text_input("Last Name")
     phone = st.text_input("Phone Number")
     email = st.text_input("Email ID")
+    age = st.number_input("Age", min_value=1, max_value=120)
+    gender = st.selectbox("Gender", ["Male", "Female", "Other"])
     password = st.text_input("Password", type="password")
 
-    if st.button("Create Account"):
-        if first and last and phone and email and password:
+    if st.button("Create Account", key="create"):
+        if first and last and phone and email and password and age and gender:
             hashed_pwd = hash_password(password)
-            success = insert_user(first, last, phone, email, hashed_pwd)
+            success = insert_user(first, last, phone, email, hashed_pwd, age, gender)
             if success:
                 st.success("Account created successfully.")
                 st.session_state.page = "login"
@@ -86,11 +88,12 @@ def signup():
                 st.error("Account creation failed. Email might already be registered.")
         else:
             st.warning("Please fill all fields.")
-
-    st.markdown("Already have an account? [Login here](#)")
-    if st.button("Go to Login"):
+    
+    if st.button("Go to Login", key="go_login"):
         st.session_state.page = "login"
         st.rerun()
+
+    
 
 
 def login():
@@ -101,36 +104,41 @@ def login():
         header {visibility: hidden;}
         .st-emotion-cache-1avcm0n {padding: 0;}  /* Removes unnecessary top padding */
     </style>
-""", unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
+
     st.subheader("Login")
     email = st.text_input("Email ID")
     password = st.text_input("Password", type="password")
 
     if st.button("Login"):
         hashed_pwd = hash_password(password)
-        if validate_user(email, hashed_pwd):
+        user = validate_user(email, hashed_pwd)
+
+        if user:
             st.success("Login successful!")
             st.session_state.logged_in = True
             st.session_state.user_email = email
 
-            user_record = get_user_by_email(email)
-            if user_record:
-                st.session_state.user = {
-                    "first_name": user_record[0],
-                    "last_name": user_record[1],
-                    "phone": user_record[2],
-                    "email": user_record[3]
-                }
+            user_id = user[0]  # Assuming first field is user ID
+            log_login_time(user_id)  # ✅ Log login time
+
+            st.session_state.user_id = user_id  # Store for use in profile page
+            st.session_state.user = {
+                "first_name": user[1],
+                "last_name": user[2],
+                "phone": user[3],
+                "email": user[4]
+            }
 
             st.session_state.page = "main"
             st.rerun()
         else:
             st.error("Invalid credentials.")
 
-    st.markdown("Don't have an account? [Sign up here](#)")
     if st.button("Go to Signup"):
         st.session_state.page = "signup"
         st.rerun()
+
 
 
 def logout():
@@ -222,85 +230,40 @@ def extract_text_from_pdf(pdf_file):
 
 # ---------- Main App ----------
 def main():
-    
-    # back_button_to_url("http://localhost:5173/")
-
-
     hide_streamlit_style = """
         <style>
-        /* Hide Streamlit header, footer, and hamburger menu */
-        #MainMenu {visibility: hidden;}
-        footer {visibility: hidden;}
-        header {visibility: hidden;}
+        #MainMenu, footer, header {visibility: hidden;}
         </style>
     """
     st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
-
     if "user" in st.session_state:
+        user = st.session_state.user
+        user_record = get_user_by_email(user['email'])
+        user_id = user_record[4]
+        login_history = get_login_history(user_id)
+
         profile_info = f"""
-        <div class="profile-container">
+        <div class="profile-wrapper">
             <div class="profile-icon">👤</div>
-            <div class="profile-details">
-                <strong>{st.session_state.user['first_name']} {st.session_state.user['last_name']}</strong><br>
-                {st.session_state.user['email']}<br>
-                {st.session_state.user['phone']}<br>
+            <div class="profile-info">
+                <strong>{user['first_name']} {user['last_name']}</strong><br>
+                {user['email']}<br>
+                {user['phone']}<br>
                 <form action="" method="post">
                     <input type="submit" value="Logout" class="logout-btn" onclick="window.location.reload();">
                 </form>
+                <hr style="margin: 10px 0;">
+                <div class="sessions">
+                    <strong>Previous Sessions</strong><br>
+                    {"<br>".join(f"Session {i + 1}: {entry[0].strftime('%Y-%m-%d %H:%M:%S')}" for i, entry in enumerate(login_history)) if login_history else "No previous login sessions found."}
+                </div>
             </div>
         </div>
-
-        <style>
-            .profile-container {{
-                position: fixed;
-                top: 20px;
-                left: 20px;  /* changed from right to left */
-                z-index: 9999;
-                font-family: Arial, sans-serif;
-            }}
-            .profile-icon {{
-                font-size: 30px;
-                cursor: pointer;
-                background-color: #3498db;
-                color: white;
-                border-radius: 50%;
-                width: 45px;
-                height: 45px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                box-shadow: 0px 4px 10px rgba(0,0,0,0.2);
-            }}
-            .profile-details {{
-                display: none;
-                position: absolute;
-                top: 50px;
-                left: 0;  /* align details under icon */
-                background-color: blue;
-                border: 1px solid #ddd;
-                padding: 10px;
-                border-radius: 10px;
-                box-shadow: 0px 4px 12px rgba(0,0,0,0.2);
-                width: 220px;
-                transition: all 0.3s ease;
-            }}
-            .profile-container:hover .profile-details {{
-                display: block;
-            }}
-            .logout-btn {{
-                background-color: #e74c3c;
-                color: white;
-                border: none;
-                padding: 5px 10px;
-                margin-top: 8px;
-                border-radius: 5px;
-                cursor: pointer;
-            }}
-        </style>
         """
         st.markdown(profile_info, unsafe_allow_html=True)
 
+    # ----- Style Section -----
     st.markdown("""
     <style>
     body {
@@ -308,11 +271,49 @@ def main():
         color: white;
     }
 
+    /* Profile box top-left */
+    .profile-wrapper {
+        position: fixed;
+        top: 20px;
+        left: 20px;
+        background-color: #1e293b;
+        color: white;
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        width: 250px;
+        z-index: 1000;
+    }
+
+    .profile-icon {
+        font-size: 36px;
+        margin-bottom: 10px;
+        text-align: center;
+    }
+
+    .logout-btn {
+        background-color: #e74c3c;
+        color: white;
+        border: none;
+        padding: 6px 12px;
+        margin-top: 8px;
+        border-radius: 6px;
+        cursor: pointer;
+        width: 100%;
+    }
+
+    .sessions {
+        font-size: 0.9rem;
+        color: #e2e8f0;
+        margin-top: 10px;
+    }
+
+    /* Centered title */
     .title-container {
         display: flex;
         flex-direction: column;
         align-items: center;
-        margin-top: -140px;
+        margin-top: 30px;
         margin-bottom: 50px;
     }
 
@@ -328,6 +329,7 @@ def main():
         color: #cbd5e1;
     }
 
+    /* Upload & file controls */
     .stRadio > div {
         display: flex;
         justify-content: center;
@@ -369,11 +371,7 @@ def main():
         background-color: #2563eb;
     }
 
-    .stFileUploader label {
-        color: #ffffff;
-        font-weight: 500;
-    }
-
+    .stFileUploader label,
     .stRadio label {
         color: #ffffff;
         font-weight: 500;
@@ -386,19 +384,20 @@ def main():
         font-weight: 600;
     }
 
-    /* Optional: Improve spinner visibility */
     .stSpinner {
         color: white;
     }
     </style>
     """, unsafe_allow_html=True)
-    
+
+    # Title section
     st.markdown("""
     <div class="title-container">
         <div class="title-text">SmartScan Reports</div>
         <div class="subtitle-text">AI driven Medical Report Analyzer</div>
     </div>
     """, unsafe_allow_html=True)
+
 
     st.write("#### Upload a medical report (image or PDF) for analysis")
 
