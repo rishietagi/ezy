@@ -8,7 +8,8 @@ from google.api_core import exceptions
 from dotenv import load_dotenv
 import time
 from datetime import datetime
-from database import insert_user, validate_user, get_user_by_email, log_login_time, get_login_history 
+from database import insert_user, validate_user, get_user_by_email, log_login_time, get_login_history, save_report, get_user_reports, get_report_by_id
+
 import hashlib
 
 
@@ -402,8 +403,6 @@ def main():
     st.write("#### Upload a medical report (image or PDF) for analysis")
 
     with st.container():
-        # st.markdown('<div class="upload-box">', unsafe_allow_html=True)
-
         file_type = st.radio("Select file type:", ("Image", "PDF"))
 
         if file_type == "Image":
@@ -419,8 +418,15 @@ def main():
                 if st.button("Analyze Image Report"):
                     with st.spinner("Analyzing the medical report image..."):
                         analysis = analyze_medical_report(image, "image")
+
+                        # ✅ SAVE analysis to DB
+                        filename = uploaded_file.name
+                        report_content = "Image file analyzed "
+                        save_report(user_id, filename, report_content, analysis)
+
                         st.subheader("Analysis Results:")
                         st.write(analysis)
+                        st.success("Report analysis saved to history.")
 
                 os.unlink(tmp_file_path)
 
@@ -439,12 +445,46 @@ def main():
                             pdf_text = extract_text_from_pdf(pdf_file)
 
                         analysis = analyze_medical_report(pdf_text, "text")
+
+                        # ✅ SAVE analysis to DB
+                        filename = uploaded_file.name
+                        report_content = pdf_text
+                        save_report(user_id, filename, report_content, analysis)
+
                         st.subheader("Analysis Results:")
                         st.write(analysis)
+                        st.success("Report analysis saved to history.")
 
                         os.unlink(tmp_file_path)
 
         st.markdown('</div>', unsafe_allow_html=True)
+
+
+        st.markdown("---")
+        st.subheader("📁 Previous Analysis of Reports")
+
+        report_sessions = get_user_reports(user_id)
+
+    if report_sessions:
+        selected = st.selectbox(
+            "Select a previous report:",
+            options=report_sessions,
+            format_func=lambda r: f"{r['filename']} ({r['created_at'].strftime('%Y-%m-%d %H:%M')})"
+        )
+
+        if selected:
+            report_details = get_report_by_id(selected['id'])
+            st.markdown(f"**Filename:** {report_details['filename']}")
+            st.markdown(f"**Uploaded:** {report_details['created_at'].strftime('%Y-%m-%d %H:%M')}")
+        
+            st.subheader("📝 Report Content")
+            st.code(report_details['report_content'] or "[Image file analysed, no text content available]", language='text')
+
+            st.subheader("📊 Analysis Result")
+            st.write(report_details['analysis'])
+    else:
+        st.info("No previous reports found.")
+
 
 
 if __name__ == "__main__":

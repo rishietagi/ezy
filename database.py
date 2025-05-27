@@ -80,3 +80,33 @@ def get_login_history(user_id):
     except Exception as e:
         print(f"[DB ERROR] Failed to fetch login history: {e}")
         return []
+
+
+def save_report(user_id, filename, report_content, analysis):
+    conn = get_connection()
+    cursor = conn.cursor()
+    query = "INSERT INTO report_sessions (user_id, filename, report_content, analysis) VALUES (%s, %s, %s, %s)"
+    cursor.execute(query, (user_id, filename, report_content, analysis))
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+def get_user_reports(user_id):
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    query = "SELECT id, filename, created_at FROM report_sessions WHERE user_id = %s ORDER BY created_at DESC"
+    cursor.execute(query, (user_id,))
+    results = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return results
+
+def get_report_by_id(report_id):
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    query = "SELECT * FROM report_sessions WHERE id = %s"
+    cursor.execute(query, (report_id,))
+    result = cursor.fetchone()
+    cursor.close()
+    conn.close()
+    return result
