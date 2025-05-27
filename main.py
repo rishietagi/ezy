@@ -305,6 +305,13 @@ def main():
     """
     st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
+    st.markdown("""
+        <div class="header-title">
+            <h1>SmartScan Reports</h1>
+            <p class="subtitle">AI driven Medical Report Analyzer</p>
+        </div>
+    """, unsafe_allow_html=True)
+
     if "user" in st.session_state:
         user = st.session_state.user
         user_record = get_user_by_email(user['email'])
@@ -381,7 +388,8 @@ def main():
         display: flex;
         flex-direction: column;
         align-items: center;
-        margin-top: 30px;
+        top: 20px;
+        margin-top: 0px;
         margin-bottom: 50px;
     }
 
@@ -389,6 +397,28 @@ def main():
         font-size:  3rem;
         font-weight: bold;
         color: #ffffff;
+    }
+    .header-title {
+        position: relative;
+        top: 20px;
+        text-align: center;
+        margin-top: 0;
+        margin-bottom: 30px;
+        z-index: 0;
+    }
+
+    .header-title h1 {
+        font-size: 3rem;
+        font-weight: bold;
+        color: #ffffff;
+        margin: 0;
+    }
+
+    .header-title .subtitle {
+        font-size: 1.3rem;
+        font-weight: 300;
+        color: #cbd5e1;
+        margin-top: 10px;
     }
 
     .subtitle-text {
@@ -458,13 +488,8 @@ def main():
     </style>
     """, unsafe_allow_html=True)
 
-    # Title section
-    st.markdown("""
-    <div class="title-container">
-        <div class="title-text">SmartScan Reports</div>
-        <div class="subtitle-text">AI driven Medical Report Analyzer</div>
-    </div>
-    """, unsafe_allow_html=True)
+
+
 
 
     st.write("#### Upload a medical report (image or PDF) for analysis")
@@ -486,7 +511,6 @@ def main():
                     with st.spinner("Analyzing the medical report image..."):
                         analysis = analyze_medical_report(image, "image")
 
-                        # ✅ SAVE analysis to DB
                         filename = uploaded_file.name
                         report_content = "Image file analyzed "
                         save_report(user_id, filename, report_content, analysis)
@@ -513,7 +537,6 @@ def main():
 
                         analysis = analyze_medical_report(pdf_text, "text")
 
-                        # ✅ SAVE analysis to DB
                         filename = uploaded_file.name
                         report_content = pdf_text
                         save_report(user_id, filename, report_content, analysis)
@@ -528,7 +551,7 @@ def main():
 
 
         st.markdown("---")
-        st.subheader("📁 Previous Analysis of Reports")
+        st.subheader("Previous Analysis of Reports")
 
         report_sessions = get_user_reports(user_id)
 
@@ -544,10 +567,10 @@ def main():
             st.markdown(f"**Filename:** {report_details['filename']}")
             st.markdown(f"**Uploaded:** {report_details['created_at'].strftime('%Y-%m-%d %H:%M')}")
         
-            st.subheader("📝 Report Content")
+            st.subheader("Report Content")
             st.code(report_details['report_content'] or "[Image file analysed, no text content available]", language='text')
 
-            st.subheader("📊 Analysis Result")
+            st.subheader("Analysis Result")
             st.write(report_details['analysis'])
     else:
         st.info("No previous reports found.")
