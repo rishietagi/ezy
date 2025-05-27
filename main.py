@@ -145,7 +145,6 @@ def show_fullscreen_animation(lottie_url, duration=2):
 #     placeholder.empty()
 
     
-# ---------- Authentication Helpers ----------
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
 
@@ -233,7 +232,7 @@ def signup():
         with st.spinner("Redirecting to Login..."):
             anim = load_lottie_url("https://assets9.lottiefiles.com/packages/lf20_usmfx6bp.json")
             st_lottie(anim, speed=1, height=200)
-            time.sleep(1.5)  # allow animation to play
+            time.sleep(1.5) 
         st.session_state.page = "login"
         st.rerun()
 
@@ -253,11 +252,9 @@ def login():
 
     st.subheader("Login")
 
-    # Input fields
     email = st.text_input("Email ID")
     password = st.text_input("Password", type="password")
 
-    # Generate captcha
     if "captcha_a" not in st.session_state:
         st.session_state.captcha_a = random.randint(1, 10)
         st.session_state.captcha_b = random.randint(1, 10)
@@ -275,12 +272,10 @@ def login():
         correct_answer = st.session_state.captcha_a + st.session_state.captcha_b
         if captcha_answer != correct_answer:
             st.error("Captcha answer is incorrect.")
-            # Regenerate captcha
             st.session_state.captcha_a = random.randint(1, 10)
             st.session_state.captcha_b = random.randint(1, 10)
             return
 
-        # Proceed with login
         hashed_pwd = hash_password(password)
         user = validate_user(email, hashed_pwd)
 
@@ -309,7 +304,6 @@ def login():
             st.rerun()
         else:
             st.error("Invalid credentials.")
-            # Reset captcha
             st.session_state.captcha_a = random.randint(1, 10)
             st.session_state.captcha_b = random.randint(1, 10)
 
@@ -326,12 +320,10 @@ def logout():
         if key in st.session_state:
             del st.session_state[key]
     st.success("Logged out successfully.")
-    # fake_page_transition("Logging You Out...")
     st.session_state.page = "login"
     st.experimental_rerun()
 
 
-# ---------- Gemini Setup ----------
 load_dotenv()
 api_key = os.getenv("GEMINI_API_KEY")
 if not api_key:
@@ -409,7 +401,6 @@ def extract_text_from_pdf(pdf_file):
 #         )
 
 
-# ---------- Main App ----------
 def main():
     hide_streamlit_style = """
         <style>
@@ -451,7 +442,6 @@ def main():
         """
         st.markdown(profile_info, unsafe_allow_html=True)
 
-    # ----- Style Section -----
     st.markdown("""
     <style>
     body {
@@ -678,7 +668,6 @@ def main():
             if selected:
                 report_details = get_report_by_id(selected['id'])
 
-                # Metadata section
                 st.markdown(
                     f"""
                     <div style="font-size: 0.9rem; color: #ccc; margin-bottom: 0.5rem;">
@@ -689,14 +678,12 @@ def main():
                     unsafe_allow_html=True
                 )
 
-                # Report content block
                 st.subheader("Report Content")
                 st.code(
                     report_details['report_content'] or "[Image file analysed, no text content available]",
                     language='text'
                 )
 
-                # Analysis result block
                 st.subheader("Analysis Result")
                 st.write(report_details['analysis'])
 
