@@ -70,10 +70,45 @@ st.markdown("""
 
 
 def load_lottie_url(url):
-    r = requests.get(url)
-    if r.status_code != 200:
+    try:
+        r = requests.get(url)
+        if r.status_code == 200:
+            return r.json()
+    except:
         return None
-    return r.json()
+    return None
+
+# def show_overlay_animation(container, lottie_url, duration=2):
+#     anim_data = load_lottie_url(lottie_url)
+#     if anim_data is None:
+#         st.warning("Animation failed to load.")
+#         return
+
+#     with container:
+#         st.markdown("""
+#             <style>
+#             .overlay-lottie {
+#                 position: fixed;
+#                 top: 0;
+#                 left: 0;
+#                 width: 100vw;
+#                 height: 100vh;
+#                 background-color: rgba(15, 23, 42, 0.95);
+#                 display: flex;
+#                 justify-content: center;
+#                 align-items: center;
+#                 z-index: 9999;
+#             }
+#             </style>
+#         """, unsafe_allow_html=True)
+
+#         st.markdown('<div class="overlay-lottie">', unsafe_allow_html=True)
+#         st_lottie(anim_data, height=300, key="lottie-transition")
+#         st.markdown('</div>', unsafe_allow_html=True)
+
+#     time.sleep(duration)
+#     container.empty()
+
 
 def show_fullscreen_animation(lottie_url, duration=2):
     # Clear all widgets
@@ -93,12 +128,10 @@ def show_fullscreen_animation(lottie_url, duration=2):
         </style>
         """, unsafe_allow_html=True)
 
-    # Add animation inside fullscreen div
     st.markdown('<div class="fullscreen-lottie">', unsafe_allow_html=True)
     st_lottie(lottie_json, speed=1, height=400, key="full_anim")
     st.markdown('</div>', unsafe_allow_html=True)
 
-    # Wait for animation to complete
     time.sleep(duration)
 
 # def fake_page_transition(message="Loading..."):
@@ -172,6 +205,7 @@ def signup():
     </div>
     ''', unsafe_allow_html=True)
 
+    animation_placeholder = st.empty()
 
     with st.container():
         first = st.text_input("First Name")
@@ -193,16 +227,22 @@ def signup():
                     st.error("Account creation failed. Email might already be registered.")
             else:
                 st.warning("Please fill all fields.")
-        
-        if st.button("Go to Login", key="go_login"):
-            show_fullscreen_animation("https://assets9.lottiefiles.com/packages/lf20_usmfx6bp.json", duration=2)
-            st.session_state.page = "login"
-            st.rerun()
+
+
+    if st.button("Go to Login", key="go_login"):
+        with st.spinner("Redirecting to Login..."):
+            anim = load_lottie_url("https://assets9.lottiefiles.com/packages/lf20_usmfx6bp.json")
+            st_lottie(anim, speed=1, height=200)
+            time.sleep(1.5)  # allow animation to play
+        st.session_state.page = "login"
+        st.rerun()
 
 
 
 
 def login():
+    
+
     st.markdown("""
     <style>
         #MainMenu {visibility: hidden;}
@@ -601,25 +641,41 @@ def main():
 
         report_sessions = get_user_reports(user_id)
 
-    if report_sessions:
-        selected = st.selectbox(
-            "Select a previous report:",
-            options=report_sessions,
-            format_func=lambda r: f"{r['filename']} ({r['created_at'].strftime('%Y-%m-%d %H:%M')})"
-        )
+        if report_sessions:
+            selected = st.selectbox(
+                "Select a previous report:",
+                options=report_sessions,
+                format_func=lambda r: f"{r['filename']} ({r['created_at'].strftime('%Y-%m-%d %H:%M')})"
+            )
 
-        if selected:
-            report_details = get_report_by_id(selected['id'])
-            st.markdown(f"**Filename:** {report_details['filename']}")
-            st.markdown(f"**Uploaded:** {report_details['created_at'].strftime('%Y-%m-%d %H:%M')}")
-        
-            st.subheader("Report Content")
-            st.code(report_details['report_content'] or "[Image file analysed, no text content available]", language='text')
+            if selected:
+                report_details = get_report_by_id(selected['id'])
 
-            st.subheader("Analysis Result")
-            st.write(report_details['analysis'])
-    else:
-        st.info("No previous reports found.")
+                # Metadata section
+                st.markdown(
+                    f"""
+                    <div style="font-size: 0.9rem; color: #ccc; margin-bottom: 0.5rem;">
+                        <b>Filename:</b> {report_details['filename']}<br>
+                        <b>Uploaded:</b> {report_details['created_at'].strftime('%Y-%m-%d %H:%M')}
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
+
+                # Report content block
+                st.subheader("Report Content")
+                st.code(
+                    report_details['report_content'] or "[Image file analysed, no text content available]",
+                    language='text'
+                )
+
+                # Analysis result block
+                st.subheader("Analysis Result")
+                st.write(report_details['analysis'])
+
+        else:
+            st.info("No previous reports found.")
+
 
 
 
