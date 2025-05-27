@@ -239,38 +239,65 @@ def signup():
 
 
 
+import random
 
 def login():
-    
-
     st.markdown("""
     <style>
         #MainMenu {visibility: hidden;}
         footer {visibility: hidden;}
         header {visibility: hidden;}
-        .st-emotion-cache-1avcm0n {padding: 0;}  /* Removes unnecessary top padding */
+        .st-emotion-cache-1avcm0n {padding: 0;}
     </style>
     """, unsafe_allow_html=True)
 
-
-
     st.subheader("Login")
+
+    # Input fields
     email = st.text_input("Email ID")
     password = st.text_input("Password", type="password")
 
+    # Generate captcha
+    if "captcha_a" not in st.session_state:
+        st.session_state.captcha_a = random.randint(1, 10)
+        st.session_state.captcha_b = random.randint(1, 10)
+
+    captcha_question = f"What is {st.session_state.captcha_a} + {st.session_state.captcha_b}?"
+    captcha_input = st.text_input(f"Captcha: {captcha_question}", key="captcha")
+
     if st.button("Login"):
+        try:
+            captcha_answer = int(captcha_input)
+        except ValueError:
+            st.warning("Captcha must be a number.")
+            return
+
+        correct_answer = st.session_state.captcha_a + st.session_state.captcha_b
+        if captcha_answer != correct_answer:
+            st.error("Captcha answer is incorrect.")
+            # Regenerate captcha
+            st.session_state.captcha_a = random.randint(1, 10)
+            st.session_state.captcha_b = random.randint(1, 10)
+            return
+
+        # Proceed with login
         hashed_pwd = hash_password(password)
         user = validate_user(email, hashed_pwd)
 
         if user:
+            with st.spinner("Logging you in..."):
+                anim = load_lottie_url("https://assets9.lottiefiles.com/packages/lf20_usmfx6bp.json")  
+                st_lottie(anim, speed=1, height=200)
+                time.sleep(1.5) 
+
             st.success("Login successful!")
             st.session_state.logged_in = True
             st.session_state.user_email = email
 
-            user_id = user[0]  # Assuming first field is user ID
-            log_login_time(user_id)  # ✅ Log login time
+            user_id = user[0]
+            log_login_time(user_id)
 
-            st.session_state.user_id = user_id  # Store for use in profile page
+            st.session_state.user_id = user_id
             st.session_state.user = {
                 "first_name": user[1],
                 "last_name": user[2],
@@ -282,17 +309,17 @@ def login():
             st.rerun()
         else:
             st.error("Invalid credentials.")
+            # Reset captcha
+            st.session_state.captcha_a = random.randint(1, 10)
+            st.session_state.captcha_b = random.randint(1, 10)
 
     if st.button("Go to SignUp", key="go_signup"):
         with st.spinner("Redirecting to Signup..."):
             anim = load_lottie_url("https://assets9.lottiefiles.com/packages/lf20_usmfx6bp.json")
             st_lottie(anim, speed=1, height=200)
-            time.sleep(1.5)  # allow animation to play
+            time.sleep(1.5)
         st.session_state.page = "signup"
         st.rerun()
-
-
-
 
 def logout():
     for key in ["logged_in", "user_email", "user", "page"]:
