@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 import time
 from datetime import datetime
 from database import insert_user, validate_user, get_user_by_email, log_login_time, get_login_history, save_report, get_user_reports, get_report_by_id
-
+import time
 import hashlib
 
 
@@ -63,39 +63,104 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
+
+# def fake_page_transition(message="Loading..."):
+#     placeholder = st.empty()
+#     with placeholder.container():
+#         st.markdown(f"<h4 style='text-align:center;'>{message}</h4>", unsafe_allow_html=True)
+#         st.progress(0)
+#         for percent_complete in range(100):
+#             time.sleep(0.005)
+#             st.progress(percent_complete + 1)
+#     placeholder.empty()
+
+    
 # ---------- Authentication Helpers ----------
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
 
 
 def signup():
-    st.subheader("Sign Up")
-    first = st.text_input("First Name")
-    last = st.text_input("Last Name")
-    phone = st.text_input("Phone Number")
-    email = st.text_input("Email ID")
-    age = st.number_input("Age", min_value=1, max_value=120)
-    gender = st.selectbox("Gender", ["Male", "Female", "Other"])
-    password = st.text_input("Password", type="password")
+    hide_streamlit_style = """
+        <style>
+        #MainMenu, footer, header {visibility: hidden;}
+        .signup-container {
+            max-width: 300px;
+            margin: 0 auto;
+            background-color: #44576D;
+            padding: 10px;
+            border-radius: 14px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            color: white;
+        }
+        .signup-title {
+            text-align: center;
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+            color: #ffffff;
+        }
+        .stTextInput > div > div,
+        .stNumberInput > div > div,
+        .stSelectbox > div > div {
+            background-color: #334155;
+            color: white;
+            border-radius: 8px;
+        }
+        .stTextInput input,
+        .stNumberInput input {
+            background-color: #334155;
+            color: white;
+        }
+        .stButton > button {
+            background-color: #3b82f6;
+            color: white;
+            border: none;
+            padding: 0.6rem 1.2rem;
+            border-radius: 10px;
+            font-weight: 500;
+            margin-top: 10px;
+            transition: background-color 0.3s ease;
+        }
+        .stButton > button:hover {
+            background-color: #2563eb;
+        }
+        </style>
+    """
+    st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
-    if st.button("Create Account", key="create"):
-        if first and last and phone and email and password and age and gender:
-            hashed_pwd = hash_password(password)
-            success = insert_user(first, last, phone, email, hashed_pwd, age, gender)
-            if success:
-                st.success("Account created successfully.")
-                st.session_state.page = "login"
+    # Combine container + title in a single HTML block to ensure proper nesting
+    st.markdown('''
+    <div class="signup-container">
+        <div class="signup-title">Sign Up</div>
+    </div>
+    ''', unsafe_allow_html=True)
+
+    with st.container():
+        first = st.text_input("First Name")
+        last = st.text_input("Last Name")
+        phone = st.text_input("Phone Number")
+        email = st.text_input("Email ID")
+        age = st.number_input("Age", min_value=1, max_value=120)
+        gender = st.selectbox("Gender", ["Male", "Female", "Other"])
+        password = st.text_input("Password", type="password")
+
+        if st.button("Create Account", key="create"):
+            if first and last and phone and email and password and age and gender:
+                hashed_pwd = hash_password(password)
+                success = insert_user(first, last, phone, email, hashed_pwd, age, gender)
+                if success:
+                    st.success("Account created successfully.")
+                    st.session_state.page = "login"
+                else:
+                    st.error("Account creation failed. Email might already be registered.")
             else:
-                st.error("Account creation failed. Email might already be registered.")
-        else:
-            st.warning("Please fill all fields.")
-    
-    if st.button("Go to Login", key="go_login"):
-        st.session_state.page = "login"
-        st.rerun()
-
-    
-
+                st.warning("Please fill all fields.")
+        
+        if st.button("Go to Login"):
+            # fake_page_transition("Taking you to Login...")
+            st.session_state.page = "login"
+            st.rerun()
 
 def login():
     st.markdown("""
@@ -137,6 +202,7 @@ def login():
             st.error("Invalid credentials.")
 
     if st.button("Go to Signup"):
+        # fake_page_transition("Taking you to SignUp...")
         st.session_state.page = "signup"
         st.rerun()
 
@@ -147,6 +213,7 @@ def logout():
         if key in st.session_state:
             del st.session_state[key]
     st.success("Logged out successfully.")
+    # fake_page_transition("Logging You Out...")
     st.session_state.page = "login"
     st.experimental_rerun()
 
