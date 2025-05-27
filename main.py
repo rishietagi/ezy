@@ -11,9 +11,10 @@ from datetime import datetime
 from database import insert_user, validate_user, get_user_by_email, log_login_time, get_login_history, save_report, get_user_reports, get_report_by_id
 import time
 import hashlib
+from streamlit_lottie import st_lottie
+import requests
 
 
-# ---------- CSS Styling ----------
 st.markdown("""
     <style>
         /* Global font and background */
@@ -28,6 +29,11 @@ st.markdown("""
             font-weight: 700;
             color: #f8fafc;
             margin-bottom: 10px;
+        }
+        .st-lottie {
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
         /* Subtitle */
         .subtext {
@@ -63,6 +69,37 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
+def load_lottie_url(url):
+    r = requests.get(url)
+    if r.status_code != 200:
+        return None
+    return r.json()
+
+def show_fullscreen_animation(lottie_url, duration=2):
+    # Clear all widgets
+    st.empty()
+
+    # Display full-page animation
+    lottie_json = load_lottie_url(lottie_url)
+    st.markdown("""
+        <style>
+        .fullscreen-lottie {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 9999;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+
+    # Add animation inside fullscreen div
+    st.markdown('<div class="fullscreen-lottie">', unsafe_allow_html=True)
+    st_lottie(lottie_json, speed=1, height=400, key="full_anim")
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    # Wait for animation to complete
+    time.sleep(duration)
 
 # def fake_page_transition(message="Loading..."):
 #     placeholder = st.empty()
@@ -129,12 +166,12 @@ def signup():
     """
     st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
-    # Combine container + title in a single HTML block to ensure proper nesting
     st.markdown('''
     <div class="signup-container">
         <div class="signup-title">Sign Up</div>
     </div>
     ''', unsafe_allow_html=True)
+
 
     with st.container():
         first = st.text_input("First Name")
@@ -157,10 +194,13 @@ def signup():
             else:
                 st.warning("Please fill all fields.")
         
-        if st.button("Go to Login"):
-            # fake_page_transition("Taking you to Login...")
+        if st.button("Go to Login", key="go_login"):
+            show_fullscreen_animation("https://assets9.lottiefiles.com/packages/lf20_usmfx6bp.json", duration=2)
             st.session_state.page = "login"
             st.rerun()
+
+
+
 
 def login():
     st.markdown("""
@@ -171,6 +211,8 @@ def login():
         .st-emotion-cache-1avcm0n {padding: 0;}  /* Removes unnecessary top padding */
     </style>
     """, unsafe_allow_html=True)
+
+
 
     st.subheader("Login")
     email = st.text_input("Email ID")
@@ -201,10 +243,14 @@ def login():
         else:
             st.error("Invalid credentials.")
 
-    if st.button("Go to Signup"):
-        # fake_page_transition("Taking you to SignUp...")
+    if st.button("Go to SignUp", key="go_signup"):
+        with st.spinner("Redirecting to Signup..."):
+            anim = load_lottie_url("https://assets9.lottiefiles.com/packages/lf20_usmfx6bp.json")
+            st_lottie(anim, speed=1, height=200)
+            time.sleep(1.5)  # allow animation to play
         st.session_state.page = "signup"
         st.rerun()
+
 
 
 
